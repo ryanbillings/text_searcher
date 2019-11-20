@@ -138,6 +138,13 @@ public class TextSearcher {
 	 * @return One context string for each time the query word appears in the file.
 	 */
 	public String[] search(String queryWord,int contextWords) {
+		if(contextWords < 0) {
+			throw new IllegalArgumentException("contextWords must be >= 0");
+		}
+		if(queryWord == null || queryWord.length() == 0) {
+			return new String[0];
+		}
+		
 		List<String> wordsFound = new ArrayList<String>();
 		queryWord = queryWord.toLowerCase();
 		
