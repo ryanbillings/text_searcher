@@ -6,10 +6,10 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 public class TextSearcher {
 	
@@ -43,12 +43,32 @@ public class TextSearcher {
 	/**
 	 *  Initializes any internal data structures that are needed for
 	 *  this class to implement search efficiently.
+	 *  
+	 *  Creates an array of words to index into
+	 *  Adds each word to a map for faster access
 	 */
 	private void init(String fileContents) {
 		lexer = new TextTokenizer(fileContents, VALID_CHARACTERS);
 		List<String> tokens = new ArrayList<String>();
+		
+		int i = 0;
 		while(lexer.hasNext()) {
-			tokens.add(lexer.next());
+			String s = lexer.next();
+			String key = s.toLowerCase();
+			
+			// Only add words to the map, no need to store spaces
+			if(lexer.isWord(s)) {
+				if(memo.containsKey(key)) {
+					Set<Integer> indices = memo.get(key);
+					indices.add(i);
+				} else {
+					Set<Integer> indices = new TreeSet<Integer>();
+					indices.add(i);
+					memo.put(key, indices);
+				}
+			}
+			i++;
+			tokens.add(s);
 		}
 		words = (String[])tokens.toArray(new String[tokens.size()]);
 	}
@@ -121,21 +141,21 @@ public class TextSearcher {
 		List<String> wordsFound = new ArrayList<String>();
 		queryWord = queryWord.toLowerCase();
 		
-		// Check if the query has been memoized
+		// Check if the query has been memoized (substrings aren't memoized by init)
 		if (memo.containsKey(queryWord)) {
 			Set<Integer> querySet = memo.get(queryWord);
 			for(int i:querySet) {
 				wordsFound.add(processWord(i, contextWords));
 			}
 		} else {
-			Set<Integer> memoSet = new HashSet<Integer>();
-			// Loop through the text file
+			Set<Integer> memoSet = new TreeSet<Integer>();
+			// Word has not yet been memoized, scan the entire text file
 			for(int i=0; i<words.length; i++) {
 				if(stringContains(words[i], queryWord)) {
 					String s = processWord(i, contextWords);
 					wordsFound.add(s);
 					
-					// Update memo
+					// Update the memo
 					memoSet.add(i);
 				}
 			}
