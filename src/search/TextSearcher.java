@@ -10,7 +10,8 @@ import java.util.List;
 public class TextSearcher {
 	
 	private String[] words;
-	private final String WORD_DELIMETER = "\\s\\r\\n\\-\\.";
+	private TextTokenizer lexer;
+	private final String VALID_CHARACTERS = "[a-zA-Z0-9']+";
 
 	/**
 	 * Initializes the text searcher with the contents of a text file.
@@ -39,7 +40,12 @@ public class TextSearcher {
 	 *  this class to implement search efficiently.
 	 */
 	private void init(String fileContents) {
-		words = fileContents.split(String.format("(?<=[%s])|(?=[%s])", WORD_DELIMETER, WORD_DELIMETER));
+		lexer = new TextTokenizer(fileContents, VALID_CHARACTERS);
+		List<String> tokens = new ArrayList<String>();
+		while(lexer.hasNext()) {
+			tokens.add(lexer.next());
+		}
+		words = (String[])tokens.toArray(new String[tokens.size()]);
 	}
 	
 	/**
@@ -53,15 +59,6 @@ public class TextSearcher {
 	}
 	
 	/**
-	 * Determines if an index into words[i] is a valid word or a delimeter
-	 * @param s
-	 * @return true if the word is valid, false otherwise
-	 */
-	private boolean isWhitespace(String s) {
-		return s.matches(String.format("^[%s]$", WORD_DELIMETER));
-	}
-	
-	/**
 	 * Returns the previous n words from a given index
 	 * @param index - the index into the words array that is a search match
 	 * @param n - the previous n words to process
@@ -71,7 +68,7 @@ public class TextSearcher {
 		StringBuilder sb = new StringBuilder("");
 		while (n > 0 && index >= 0) {
 			sb.insert(0, words[index]);
-			if (!isWhitespace(words[index])) {
+			if (lexer.isWord(words[index])) {
 				n--;
 			}
 			index--;
@@ -89,23 +86,14 @@ public class TextSearcher {
 		StringBuilder sb = new StringBuilder("");
 		while (n > 0 && index < words.length) {
 			sb.append(words[index]);
-			if (!isWhitespace(words[index])) {
+			if (lexer.isWord(words[index])) {
 				n--;
 			}
 			index++;
 		}
 		return sb.toString();
 	}
-	
-	/**
-	 *  Trim trailing commas and whitespace from the string
-	 * @param String s
-	 * @return s with trailing characters removed
-	 */
-	private String sanitize(String  s) {
-		return s.replaceAll(",*\\s*$", "");
-	}
-	
+
 	/**
 	 * 
 	 * @param queryWord The word to search for in the file contents.
@@ -119,7 +107,7 @@ public class TextSearcher {
 		for(int i=0; i<words.length; i++) {
 			if(stringContains(words[i], queryWord)) {
 				String s = previous(i-1, contextWords) + words[i] + next(i+1, contextWords);
-				wordsFound.add(sanitize(s));
+				wordsFound.add(s);
 			}
 		}
 		
