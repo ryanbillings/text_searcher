@@ -5,13 +5,18 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class TextSearcher {
 	
 	private String[] words;
 	private TextTokenizer lexer;
 	private final String VALID_CHARACTERS = "[a-zA-Z0-9']+";
+	private Map<String, Set<Integer>> memo = new HashMap<String, Set<Integer>>();
 
 	/**
 	 * Initializes the text searcher with the contents of a text file.
@@ -93,6 +98,17 @@ public class TextSearcher {
 		}
 		return sb.toString();
 	}
+	
+	/**
+	 * Gets the word within the words array at the index
+	 * Prepends the previous n contextWords and appends the next n contextWords
+	 * @param index, the index within words
+	 * @param contextWords, the number of words to add on both sides
+	 * @return a string computing the contextWords from both sides of the word at words[index]
+	 */
+	private String processWord(int index, int contextWords) {
+		return previous(index-1, contextWords) + words[index] + next(index+1, contextWords);
+	}
 
 	/**
 	 * 
@@ -103,12 +119,27 @@ public class TextSearcher {
 	 */
 	public String[] search(String queryWord,int contextWords) {
 		List<String> wordsFound = new ArrayList<String>();
+		queryWord = queryWord.toLowerCase();
 		
-		for(int i=0; i<words.length; i++) {
-			if(stringContains(words[i], queryWord)) {
-				String s = previous(i-1, contextWords) + words[i] + next(i+1, contextWords);
-				wordsFound.add(s);
+		// Check if the query has been memoized
+		if (memo.containsKey(queryWord)) {
+			Set<Integer> querySet = memo.get(queryWord);
+			for(int i:querySet) {
+				wordsFound.add(processWord(i, contextWords));
 			}
+		} else {
+			Set<Integer> memoSet = new HashSet<Integer>();
+			// Loop through the text file
+			for(int i=0; i<words.length; i++) {
+				if(stringContains(words[i], queryWord)) {
+					String s = processWord(i, contextWords);
+					wordsFound.add(s);
+					
+					// Update memo
+					memoSet.add(i);
+				}
+			}
+			memo.put(queryWord, memoSet);
 		}
 		
 		String[] strArr = new String[wordsFound.size()];
@@ -116,6 +147,3 @@ public class TextSearcher {
 		return strArr;
 	}
 }
-
-// Any needed utility classes can just go in this file
-
